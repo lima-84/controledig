@@ -8,49 +8,53 @@
 // pwm period = 31.875 us
 
 const int BATCH_SIZE = 200;
-const int NUM_INPUTS = (BATCH_SIZE / 20 );
-const int INPUT_CHANGE_PERIOD = BATCH_SIZE/NUM_INPUTS; // in samples
+int y[BATCH_SIZE] = {};
+float u[BATCH_SIZE] = {};
 
-int sample_buffers[BATCH_SIZE] = {};
-uint16_t input_list[NUM_INPUTS] = {};
+int perturb = 1;
 
 const bool DEBUG = false;
-const bool PRBS = false;
 
 char timer_count = 0;
-bool sample = false;
 bool send_serial = false;
+bool on = false;
 uint16_t sample_count = 0;
-uint16_t input_count = 0;
+
+float ref =2.5, e=0, eant=0, i=0, d=0;
+
+#define KP 1.143677268970767
+#define KI 0.4913055708142872 
+#define KD 0.0964895917972739
+
+/* #define KD -0.34313250699481657 */
+/* #define KI 1.2135917662606848 */ 
+/* #define KP 1.7358097748380037 */ 
+
+
+/* #define KD -0.13315503221689973 */
+/* #define KI 0.8123151004689042 */ 
+/* #define KP 1.4963652401153276 */ 
+
+
+/* #define KD -0.13315503221689973 */
+/* #define KI 0.8123151004689042 */ 
+/* #define KP 1.4963652401153276 */ 
+
+/* #define KP 0.677745861404204 */ 
+/* #define KI 0.25056317729683636 */ 
+/* #define KD 0.3458013650477928 */
 
 char received_from_serial = '0';
-
-// Random number generator based on xorshift 
-// (adapted for fewer number of bits)
-unsigned int s[2] = {1231, 999999};
-unsigned int rng()
-{
-    unsigned int x = s[0];
-    unsigned int y = s[1];
-    s[0] = y;
-    x ^= x << 7; // a
-    s[1] = x ^ y ^ (x >> 3) ^ (y >> 5); // b, c
-
-    if (PRBS)
-        return ((s[1] + y)%2)*255;
-    else
-        return (s[1] + y)%255;
-}
 
 void send_samples()
 {
     int i=0;
     for (i=0; i < BATCH_SIZE; i++){
-        Serial.println(sample_buffers[i]);
+        Serial.println(y[i]);
     }
     Serial.println("inputs");
-    for (int i=0; i < NUM_INPUTS; i++)
-        Serial.println(input_list[i]);
+    for (int i=0; i < BATCH_SIZE; i++)
+        Serial.println(u[i]);
 }
 
 ISR(TIMER2_COMPA_vect)
@@ -59,19 +63,26 @@ ISR(TIMER2_COMPA_vect)
     if (timer_count>10)
     {
         timer_count=0;
-        if(sample)
+
+        if(on)
         {
-            sample_buffers[sample_count] = analogRead(A0);
-            if (sample_count % INPUT_CHANGE_PERIOD == 0)
+            eant = e;
+            y[sample_count] = analogRead(A0);
+            e = ref - (float)y[sample_count]*5.0/1023.0;
+            i = e + i;
+            d = e - eant;
+            u[sample_count] = 255.0*(perturb + (KP*e + KI*i + KD*d))/5.0;
+            if (u[sample_count]>255)
+                u[sample_count] = 255;
+            analogWrite(9, u[sample_count]);
+            sample_count ++;
+            if ((sample_count % 25) == 0)
+                perturb *= -1;
+            if (sample_count == BATCH_SIZE)
             {
-                analogWrite(9, input_list[input_count]);
-                input_count = (input_count + 1)%NUM_INPUTS;
-            }
-            sample_count++;
-            if (sample_count==BATCH_SIZE)
-            {
-                sample_count =0;
+                sample_count=0;
                 send_serial = true;
+                on = false;
             }
         }
     }
@@ -92,18 +103,13 @@ void setup() {
     // enable timer compare interrupt
     TIMSK2 |= (1 << OCIE2A);
 
-    for(int i=0; i < NUM_INPUTS; i++)
-    {
-        input_list[i] = rng();
-    }
-
     analogWrite(9, 0);
 }
 void loop() {
 
     if (send_serial == true)
     {
-        sample=false;
+        on = false;
         send_serial = false;
         send_samples();
     }
@@ -112,14 +118,11 @@ void loop() {
         received_from_serial = Serial.read();
         switch (received_from_serial){
             case 'b':
-                sample=true;
+                on = true;
                 break;
             case 'q':
-                sample=false;
+                on = false;
                 analogWrite(9, 0);
-                break;
-            case 'r':
-                Serial.println(rng());
                 break;
         }
         received_from_serial = '0';

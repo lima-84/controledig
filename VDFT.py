@@ -74,20 +74,24 @@ def test_MQ():
     # Fiz um controle aqui pq tava no desespero
     print("poles:", pole(sysId))
     print("zeros:",zero(sysId))
-    czeros =  np.sort(pole(sysId))[-2:]
+    czeros =  np.sort(pole(sysId))[0::2]
     print("control zeros:", czeros)
     cpoles = np.array([1,0])
-    num, den = zpk2tf(czeros,cpoles,1)
+    num, den = zpk2tf(czeros,cpoles,2.5)
     C = tf(num, den, 1e-6*args['ts'])
     print(C)
 
     T = (sysId)/(1+sysId*C)
     y_control, _ = step(T, t_exp)
+    y_step, _ = step(T*C, t_exp)
+    y_sys, _ = step(sysId, t_exp)
     print("poles of T:",pole(T))
     print("zeros of T:",zero(T))
     print(T)
     plt.title('sistema em MF')
     plt.plot(t_exp[:-1], y_control, label="mf")
+    plt.plot(t_exp[:-1], y_step, label="mf")
+    plt.plot(t_exp[:-1], y_sys, label="mf")
     plt.legend()
     plt.show()
 
@@ -106,6 +110,43 @@ def d_recurrency(y, a, K):
 
     for t in range(1,len(y)-1):
         d.append(y[t+1]/K -2*a*y[t]/K + a*a*y[t-1]/K + d[t-1])
+
+    # Bota a última amostra duas vezes pra fechar o tamanho
+    d.append(d[-1])
+    return np.array(d)
+
+def d_recurrency_ord3(y, a, K):
+    """
+        eq. de recorrencia para a Q da forma:
+            K * (z-1)
+               -------
+                (z-a)*(z+a)
+    """
+    d = []
+
+    d.append(y[1]/K)
+
+    for t in range(1,len(y)-1):
+        d.append(y[t+1]/K + a*a*y[t-1]/K + d[t-1])
+
+    # Bota a última amostra duas vezes pra fechar o tamanho
+    d.append(d[-1])
+    return np.array(d)
+
+
+def d_recurrency_ord1(y, a, K):
+    """
+        eq. de recorrencia para a Q da forma:
+            K * (z-1)
+               -------
+                (z-a)
+    """
+    d = []
+
+    d.append(y[0]/K)
+
+    for t in range(1,len(y)-1):
+        d.append(y[t]/K -a*y[t-1]/K + a*a*y[t-1]/K + d[t-1])
 
     # Bota a última amostra duas vezes pra fechar o tamanho
     d.append(d[-1])
@@ -147,13 +188,16 @@ if __name__ == "__main__":
     PHI = np.array([phiT(n) for n in sampled_n])
 
     # Tava tentando simular a Q pelo lsim...
-    # n, d = zpk2tf([1, -2, -0.9],[0.8, 0.8, -0.6],0.5)
+    # n, d = zpk2tf([1, 0.5],[0.65 ,0.65],0.25)
     # Qd = tf(n, d, 1e-6*args['ts'])
     # d, _, _ = lsim(1/Qd, y, t)
+    # t = t[:-1]
+    # u = u[:-1]
+    # y = y[:-1]
 
     # D pela recorrencia 
-    # d = d_recurrency(y, a=0.85, K=0.3)
-    d = d_recurrency(y, a=0.8, K=0.26)
+    d = d_recurrency(y, a=0.65, K=0.25)
+    # d = d_recurrency(y, a=0.65, K=0.3)
 
     # Uc = u controlador
     uc = u - d.reshape(-1)
@@ -188,13 +232,23 @@ if __name__ == "__main__":
                           samples=t.shape[0])
     G = tf(numId, denId, 1e-6*args['ts'])
 
+    print(pole(G))
+    print(zero(G))
+
     T = G/(1+C*G)
 
     # yprev, _, _ = step(T, d, t)
-    yprev, _ = step(T, t)
+    yq, _ = step(T, t)
+    yr, _ = step(T*C, t)
 
-    plt.plot(t[:-1], yprev, label="y previsto")
-    # plt.plot(t,y, label="y")
-
+    plt.plot(t[:-1]*1e3, yq, label="Q obtida")
+    plt.plot(t[:-1]*1e3, yr, label="T obtida")
     plt.legend()
     plt.show()
+
+    yprev, _, _ = lsim(T, d, t)
+    plt.plot(t[:-1],yprev, label="yprev")
+    plt.plot(t,y, label="y")
+    plt.legend()
+    plt.show()
+

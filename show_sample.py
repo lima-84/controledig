@@ -10,6 +10,9 @@ def parseArgs():
     ap = argparse.ArgumentParser()
     ap.add_argument("paths", nargs = '+',
                     help="path to the sample to plot")
+    ap.add_argument("--nosimul", action='store_false',
+                    required=False,
+                    help="path to the sample to plot")
     ap.add_argument("-t", "--ts", required=False, default=1000, type=float,
                     help="sample time in us")
     args = vars(ap.parse_args())
@@ -42,10 +45,11 @@ if __name__ == "__main__":
         fig, ax = plt.subplots()
         t, y, u = load_sample(path, ts=args['ts'])
 
-        ysim,tsim, x = lsim(sys, u, t)
+        if args['nosimul']:
+            ysim,tsim, x = lsim(sys, u, t)
+            ax.plot(t,ysim, label='Simulado')
 
         ax.plot(t,y, label='Experimento')
-        ax.plot(t,ysim, label='Simulado')
         ax.plot(t,u, label='Entrada')
         ax.legend()
         fig.show()
