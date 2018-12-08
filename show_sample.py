@@ -10,12 +10,12 @@ def parseArgs():
     ap = argparse.ArgumentParser()
     ap.add_argument("paths", nargs = '+',
                     help="path to the sample to plot")
-    ap.add_argument("-t", "--ts", required=False, default=100, type=float,
+    ap.add_argument("-t", "--ts", required=False, default=1000, type=float,
                     help="sample time in us")
     args = vars(ap.parse_args())
     return args
 
-def load_sample(path, ts = 100):
+def load_sample(path, ts = 1000):
     """
     returns t, y and u from sample in path
     ts is given in us
@@ -40,7 +40,7 @@ if __name__ == "__main__":
 
     for path in args['paths']:
         fig, ax = plt.subplots()
-        t, y, u = load_sample(path)
+        t, y, u = load_sample(path, ts=args['ts'])
 
         ysim,tsim, x = lsim(sys, u, t)
 

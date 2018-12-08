@@ -8,13 +8,14 @@
 // pwm period = 31.875 us
 
 const int BATCH_SIZE = 200;
-const int NUM_INPUTS = (BATCH_SIZE / 20 );
+const int NUM_INPUTS = (BATCH_SIZE / 5 );
 const int INPUT_CHANGE_PERIOD = BATCH_SIZE/NUM_INPUTS; // in samples
 
 int sample_buffers[BATCH_SIZE] = {};
 uint16_t input_list[NUM_INPUTS] = {};
 
 const bool DEBUG = false;
+const bool PRBS = true;
 
 char timer_count = 0;
 bool sample = false;
@@ -35,7 +36,10 @@ unsigned int rng()
     x ^= x << 7; // a
     s[1] = x ^ y ^ (x >> 3) ^ (y >> 5); // b, c
 
-    return ((s[1] + y)%2)*255;
+    if (PRBS)
+        return ((s[1] + y)%2)*255;
+    else
+        return (s[1] + y)%255;
 }
 
 void send_samples()
@@ -99,9 +103,9 @@ void loop() {
 
     if (send_serial == true)
     {
-        sample= false;
-        send_samples();
+        sample=false;
         send_serial = false;
+        send_samples();
     }
 
     if (Serial.available()){

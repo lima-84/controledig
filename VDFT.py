@@ -17,7 +17,7 @@ def parseArgs():
     ap = argparse.ArgumentParser()
     ap.add_argument("paths", nargs='+',
                     help="path to sample to use")
-    ap.add_argument("-t", "--ts", required=False, default=100, type=float,
+    ap.add_argument("-t", "--ts", required=False, default=1000, type=float,
                     help="sample time in us")
     args = vars(ap.parse_args())
     return args
@@ -59,14 +59,14 @@ def test_MQ():
     denId, numId = MQ_sys(nPoles=3, nZeros=2,
                           y=y_exp, u=u_exp,
                           samples=t_exp.shape[0])
-    sysId = tf(numId, denId, 100e-6)
+    sysId = tf(numId, denId, 1e-6*args['ts'])
 
     yid, _, _ = lsim(sysId, u_exp, t_exp)
 
     print(sysId)
     print("DC gain:", dcgain(sysId))
     plt.title('Sistema Gerado: Comparação')
-    plt.plot(t_exp, yid, label="identificado")
+    plt.plot(t_exp[:-1], yid, label="identificado")
     plt.plot(t_exp, y_exp, label="experimento")
     plt.legend()
     plt.show()
@@ -77,8 +77,8 @@ def test_MQ():
     czeros =  np.sort(pole(sysId))[-2:]
     print("control zeros:", czeros)
     cpoles = np.array([1,0])
-    num, den = zpk2tf(czeros,cpoles,45)
-    C = tf(num, den, 100e-6)
+    num, den = zpk2tf(czeros,cpoles,1)
+    C = tf(num, den, 1e-6*args['ts'])
     print(C)
 
     T = (sysId)/(1+sysId*C)
@@ -87,7 +87,7 @@ def test_MQ():
     print("zeros of T:",zero(T))
     print(T)
     plt.title('sistema em MF')
-    plt.plot(t_exp, y_control, label="mf")
+    plt.plot(t_exp[:-1], y_control, label="mf")
     plt.legend()
     plt.show()
 
@@ -121,18 +121,11 @@ if __name__ == "__main__":
 
     # Processa as amostras (fiz um resample pq tava dando merda)
     t, y, u = load_sample(args['paths'][0])
-    t = t.reshape(-1)
-    y = y.reshape(-1)
-    u = u.reshape(-1)
-    resample = 1
-    t = t[0::resample]
-    y = y[0::resample]
-    u = u[0::resample]
 
     # Funções de transferencia do P, do I e do D
-    Pz = tf([1],[1],100e-6*resample)
-    Iz = tf([1, 0], [1, -1], 100e-6*resample)
-    Dz = tf([1, -1], [1, 0], 100e-6*resample)
+    Pz = tf([1],[1],1e-6*args['ts'])
+    Iz = tf([1, 0], [1, -1], 1e-6*args['ts'])
+    Dz = tf([1, -1], [1, 0], 1e-6*args['ts'])
 
 
     print(Iz)
@@ -155,11 +148,11 @@ if __name__ == "__main__":
 
     # Tava tentando simular a Q pelo lsim...
     # n, d = zpk2tf([1, -2, -0.9],[0.8, 0.8, -0.6],0.5)
-    # Qd = tf(n, d, 100e-6*resample)
+    # Qd = tf(n, d, 1e-6*args['ts'])
     # d, _, _ = lsim(1/Qd, y, t)
 
     # D pela recorrencia 
-    d = d_recurrency(y, a=0.55, K=0.3)
+    d = d_recurrency(y, a=0.75, K=0.2)
 
     # Uc = u controlador
     uc = u - d.reshape(-1)
@@ -178,7 +171,7 @@ if __name__ == "__main__":
     Y = uc[sampled_n]
     kp, ki, kd = solve_MQ(PHI, Y)
 
-    z = tf([1, 0],[1], 100e-6*resample)
+    z = tf([1, 0],[1], 1e-6*args['ts'])
     C = (z*z*kp + z*(ki+kd-kp) - kd)/(z*(z-1))
 
     print(np.linalg.cond(PHI.T@PHI))
@@ -188,16 +181,17 @@ if __name__ == "__main__":
 
     # Encontra o modelo do sistema e simula em MF
     # pra ver se deu boa
+    print("PID:",kp,ki,kd)
     denId, numId = MQ_sys(nPoles=3, nZeros=2,
                           y=y, u=u,
                           samples=t.shape[0])
-    G = tf(numId, denId, 100e-6*resample)
+    G = tf(numId, denId, 1e-6*args['ts'])
 
     T = G/(1+C*G)
 
     yprev, _, _ = lsim(T, d, t)
 
-    plt.plot(t, yprev, label="y previsto")
+    plt.plot(t[:-1], yprev, label="y previsto")
     plt.plot(t,y, label="y")
 
     plt.legend()
