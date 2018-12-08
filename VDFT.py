@@ -152,7 +152,8 @@ if __name__ == "__main__":
     # d, _, _ = lsim(1/Qd, y, t)
 
     # D pela recorrencia 
-    d = d_recurrency(y, a=0.75, K=0.2)
+    # d = d_recurrency(y, a=0.85, K=0.3)
+    d = d_recurrency(y, a=0.8, K=0.26)
 
     # Uc = u controlador
     uc = u - d.reshape(-1)
@@ -189,10 +190,11 @@ if __name__ == "__main__":
 
     T = G/(1+C*G)
 
-    yprev, _, _ = lsim(T, d, t)
+    # yprev, _, _ = step(T, d, t)
+    yprev, _ = step(T, t)
 
     plt.plot(t[:-1], yprev, label="y previsto")
-    plt.plot(t,y, label="y")
+    # plt.plot(t,y, label="y")
 
     plt.legend()
     plt.show()
