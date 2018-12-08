@@ -13,6 +13,18 @@ denId, numId = MQ_sys(nPoles=3, nZeros=2,
                       samples = t_exp.shape[0])
 sysId = tf(numId, denId, 100e-6)
 
+n, d = zpk2tf([1],[0.7,0.7],0.4)
+Qd = tf(n, d, 100e-6)
+print(Qd)
+
+yq, _ = step(Qd, t_exp)
+ys, _ = step(sysId, t_exp)
+
+plt.title("Q vs step sys")
+plt.plot(t_exp, yq, label="q")
+plt.plot(t_exp, ys, label="s")
+plt.show()
+
 yid, _, _ = lsim(sysId, u_exp, t_exp)
 plt.title('Sistema Gerado: Comparação')
 plt.plot(t_exp, yid, label="identificado")
