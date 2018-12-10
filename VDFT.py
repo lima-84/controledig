@@ -162,6 +162,19 @@ if __name__ == "__main__":
 
     # Processa as amostras (fiz um resample pq tava dando merda)
     t, y, u = load_sample(args['paths'][0])
+    # t = []
+    # y = []
+    # u = []
+    # with open('/home/freitas/Downloads/teste2.txt') as f:
+    #     for line in f:
+    #         text = line.split(',')
+    #         t.append(float(text[0]))
+    #         u.append(float(text[1]))
+    #         y.append(float(text[2]))
+    # t = np.array(t)
+    # t = t * 1e-6*args['ts']
+    # u = np.array(u)
+    # y = np.array(y)
 
     # Funções de transferencia do P, do I e do D
     Pz = tf([1],[1],1e-6*args['ts'])
@@ -185,7 +198,7 @@ if __name__ == "__main__":
 
     # phiT(T) é o vetor [P, I, D]
     def phiT(t): return np.array([P[t], I[t], D[t]])
-    PHI = np.array([phiT(n) for n in sampled_n])
+    PHI = [phiT(n) for n in sampled_n]
 
     # Tava tentando simular a Q pelo lsim...
     # n, d = zpk2tf([1, 0.5],[0.65 ,0.65],0.25)

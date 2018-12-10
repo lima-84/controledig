@@ -30,4 +30,12 @@ C = np.array([0, 0, 1])
 
 sys = ss( A, B, C, 0)
 
+y,t = step(sys)
+
+plt.plot(t, y)
+# print(t[y>=0.98])
+plt.title("Resposta ao Salto do Sistema")
+print(sys)
+plt.show()
+
 s = c2d(tf(sys), 100e-6, method='zoh')

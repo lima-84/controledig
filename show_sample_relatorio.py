@@ -18,9 +18,6 @@ def parseArgs():
                     help="path to output figure")
     ap.add_argument("--title",
                     help="title of the figure")
-    ap.add_argument("--nosimul", action='store_false',
-                    required=False,
-                    help="path to the sample to plot")
     ap.add_argument("-t", "--ts", required=False, default=1000, type=float,
                     help="sample time in us")
     args = vars(ap.parse_args())
@@ -43,22 +40,12 @@ def load_sample(path, ts = 1000):
 if __name__ == "__main__":
     args = parseArgs()
 
-    A = 1e3*np.array([[-2,1,0],[1,-2,1],[0,10,-10]])
-    B = 1e3*np.array([[1],[0],[0]])
-    C = np.array([0, 0, 1])
-
-    sys = ss(A,B,C,0)
-
     b = args['b']
     e = args['e']
 
     for path in args['paths']:
         fig, ax = plt.subplots()
         t, y, u = load_sample(path, ts=args['ts'])
-
-        if args['nosimul']:
-            ysim,tsim, x = lsim(sys, u, t)
-            ax.plot(t[b:e],ysim[b:e], label='Simulado')
 
         ax.plot(t[b:e],y[b:e], label='y[n]')
         ax.plot(t[b:e],u[b:e], label='v[n]')
@@ -71,4 +58,3 @@ if __name__ == "__main__":
         plt.savefig(args['output'])
     else:
         plt.show()
-

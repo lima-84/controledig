@@ -51,10 +51,11 @@ void send_samples()
 {
     int i=0;
     for (i=0; i < BATCH_SIZE; i++){
-        Serial.print(5.0*y[i]/1023.0);
-        Serial.print(" ");
-        Serial.println(5.0*u[i]/255.0);
+        Serial.println(y[i]);
     }
+    Serial.println("inputs");
+    for (int i=0; i < BATCH_SIZE; i++)
+        Serial.println(u[i]);
 }
 
 ISR(TIMER2_COMPA_vect)
@@ -109,17 +110,16 @@ void setup() {
 }
 void loop() {
 
-    if (send_serial == true)
-    {
-        send_serial = false;
-        send_samples();
-    }
-    delay(500);
+    /* if (send_serial == true) */
+    /* { */
+    /*     send_serial = false; */
+    /*     /1* send_samples(); *1/ */
+    /* } */
 
-    /* Serial.print(5.0*y[sample_count]/1023.0); */
-    /* Serial.print(" "); */
-    /* Serial.println(5.0*u[sample_count]/255.0); */
-    /* delay(1); */
+    Serial.print(5.0*y[sample_count]/1023.0);
+    Serial.print(" ");
+    Serial.println(5.0*u[sample_count]/255.0);
+    delay(1);
     /* if (Serial.available()){ */
     /*     received_from_serial = Serial.read(); */
     /*     switch (received_from_serial){ */
